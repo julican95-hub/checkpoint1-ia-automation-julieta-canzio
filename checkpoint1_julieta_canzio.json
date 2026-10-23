@@ -1,0 +1,432 @@
+{
+  "name": "Pre-entrega 1 - CASSA | Agente Comercial Inmobiliario - Checkpoint 1",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "86391a5f-e6bf-4bf0-ba0e-5789914d0874",
+      "name": "01 - Recepción de consultas",
+      "webhookId": "9ad08782-00e8-423d-b25c-1c817d3a24de"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput}}",
+        "options": {
+          "systemMessage": "# ROL\nSos el asistente virtual de Cassa Grupo Inmobiliario, especializado en la atención inicial y calificación de consultas comerciales.\n\n# ÁMBITO\nAtendés exclusivamente consultas sobre compra y alquiler de inmuebles: departamentos, casas, locales, oficinas, cocheras y terrenos.\n\n# OBJETIVO\nTu función es interpretar lo que busca el interesado y recopilar:\n- Nombre completo.\n- Teléfono o correo electrónico.\n- Operación: venta o alquiler.\n- Tipo de propiedad.\n- Zona de interés.\n- Presupuesto aproximado.\n- Características de la búsqueda.\n\nSi faltan datos, realizá preguntas breves y claras.\n\n# USO DE HERRAMIENTAS\nCuando tengas nombre, contacto, operación y al menos uno de estos datos: tipo de propiedad, zona o presupuesto, utilizá la herramienta de Airtable conectada al agente para guardar la consulta.\n\nNo inventes datos faltantes ni confirmes registros que la herramienta no haya realizado.\n\n# RESTRICCIONES\nNo inventes propiedades, precios ni disponibilidad.\nNo confirmes visitas, reservas ni contratos.\nNo negocies precios ni ofrezcas descuentos.\nNo gestiones pagos, mantenimiento, expensas ni reclamos administrativos.\nNo solicites información personal innecesaria.\n\n# ESCALAMIENTO\nSi la consulta corresponde a administración, mantenimiento, cobranzas o contratos, indicá que debe intervenir el área correspondiente de Cassa Grupo Inmobiliario.\n\n# ESTILO DE COMUNICACIÓN\nRespondé en español de Argentina, de forma profesional, cordial y breve.\nNo utilices lenguaje inclusivo.\n\nREGLA CRÍTICA DE OPERACIÓN\nAl registrar una consulta en Airtable, utilizá el parámetro Operacion con uno de estos dos valores exactos: Venta o Alquiler.\nSi el cliente quiere comprar o adquirir un inmueble, utilizá Venta. Si quiere alquilar o rentar, utilizá Alquiler.\nNo envíes sinónimos ni variantes. No inventes la operación si el cliente no la indicó. Registrá la consulta una sola vez y únicamente cuando tengas los datos mínimos necesarios.",
+          "maxIterations": 6
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        384,
+        0
+      ],
+      "id": "fc7a2b5a-9f1c-4f29-b9de-754af9f47107",
+      "name": "02 - Agente Comercial CASSA"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {
+          "maxTokensToSample": 10000,
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        160,
+        272
+      ],
+      "id": "b20b06b8-2149-4a37-b29f-090459b750fb",
+      "name": "03 - Modelo IA Groq",
+      "credentials": {
+        "groqApi": {
+          "id": "gNRPU9Y7NAAzubkE",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 4
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        272
+      ],
+      "id": "6a3560f8-f388-458e-ad38-45979cfa80e0",
+      "name": "04 - Memoria conversacional"
+    },
+    {
+      "parameters": {
+        "sendTo": "julicanzio@hotmail.com",
+        "subject": "[CASSA] Reporte de ejecución - Agente Comercial",
+        "message": "= {{ '<h2>CASSA - Supervisión del Agente Comercial</h2>' + '<p><strong>Estado:</strong> Ejecución del agente finalizada</p>' + '<p><strong>Fecha:</strong> ' + $now.toFormat('dd/MM/yyyy HH:mm') + '</p>' + '<p><strong>Resultado:</strong></p><pre>' + String($json.output ?? 'Sin resultado').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre><p><strong>Origen:</strong> Chat n8n</p>' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "c9d915c0-2ae9-44d5-81dc-b4dabccc3a3b",
+      "name": "06 - Notificación comercial",
+      "webhookId": "d66c745b-0f1f-425a-b669-b65304ce893f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "w6ieUcFuhQZ95OuM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Utilizá esta herramienta para registrar una consulta inmobiliaria calificada en Airtable únicamente cuando el cliente haya proporcionado nombre completo, contacto, operación (Venta o Alquiler) y al menos un criterio de búsqueda: tipo de propiedad, zona o presupuesto. Registrá una sola vez por consulta.",
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appB10t5e3IqpPJX2",
+          "mode": "list",
+          "cachedResultName": "CASSA - Gestión Comercial",
+          "cachedResultUrl": "https://airtable.com/appB10t5e3IqpPJX2"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBi55cKJGZcW469",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://airtable.com/appB10t5e3IqpPJX2/tblBi55cKJGZcW469"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nombre_Cliente": "={{ $fromAI('Nombre_Cliente', '', 'string') }}",
+            "Contacto": "={{ $fromAI('Contacto', '', 'string') }}",
+            "Canal": "Chat n8n",
+            "Operación": "={{ $fromAI('Operacion', 'Venta o Alquiler', 'string') }}",
+            "Tipo_Propiedad": "={{ $fromAI('Tipo_Propiedad', '', 'string') }}",
+            "Zona": "={{ $fromAI('Zona', '', 'string') }}",
+            "Presupuesto": "={{ $fromAI('Presupuesto', '', 'string') }}",
+            "Resumen_Consulta": "={{ $fromAI('Resumen_Consulta', '', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Nombre_Cliente",
+              "displayName": "Nombre_Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Contacto",
+              "displayName": "Contacto",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Canal",
+              "displayName": "Canal",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Operación",
+              "displayName": "Operación",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tipo_Propiedad",
+              "displayName": "Tipo_Propiedad",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Zona",
+              "displayName": "Zona",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Presupuesto",
+              "displayName": "Presupuesto",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Caracteristicas",
+              "displayName": "Caracteristicas",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Resumen_Consulta",
+              "displayName": "Resumen_Consulta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Resumen (Caracteristicas)",
+              "displayName": "Resumen (Caracteristicas)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Titular (Caracteristicas)",
+              "displayName": "Titular (Caracteristicas)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Resumen (Resumen_Consulta)",
+              "displayName": "Resumen (Resumen_Consulta)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Titular (Resumen_Consulta)",
+              "displayName": "Titular (Resumen_Consulta)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Resumen corto (Resumen (Resumen_Consulta))",
+              "displayName": "Resumen corto (Resumen (Resumen_Consulta))",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Titular (Resumen (Resumen_Consulta))",
+              "displayName": "Titular (Resumen (Resumen_Consulta))",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Resumen (Titular (Resumen_Consulta))",
+              "displayName": "Resumen (Titular (Resumen_Consulta))",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Titular (Titular (Resumen_Consulta))",
+              "displayName": "Titular (Titular (Resumen_Consulta))",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        272
+      ],
+      "id": "3e669335-b3d6-443f-accc-beee5711ea14",
+      "name": "05 - Registrar_Lead1",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "YiYyRnGA4WF75COE",
+          "name": "Airtable account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "01 - Recepción de consultas": {
+      "main": [
+        [
+          {
+            "node": "02 - Agente Comercial CASSA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 - Agente Comercial CASSA": {
+      "main": [
+        [
+          {
+            "node": "06 - Notificación comercial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 - Modelo IA Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "02 - Agente Comercial CASSA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 - Memoria conversacional": {
+      "ai_memory": [
+        [
+          {
+            "node": "02 - Agente Comercial CASSA",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 - Registrar_Lead1": {
+      "ai_tool": [
+        [
+          {
+            "node": "02 - Agente Comercial CASSA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1d9780ea-81db-4e30-ac55-7a00a9106e82",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6db2f6e7d3408e0259adc63d4d74fa930b4bc530b643fb46af61761c24ea38d6"
+  },
+  "nodeGroups": [],
+  "id": "Do280ifftXQHfJVr",
+  "tags": []
+}
